@@ -7,6 +7,16 @@ if [ ! -d "$appPath" ]; then
   exit 1
 fi
 
+docker_command=$(command -v podman)
+if [ -z ${docker_command} ]; then
+    docker_command=$(command -v docker)
+fi
+
+if [ -z ${docker_command} ]; then
+    echo "Could not locate podman or docker command."
+    exit 1
+fi
+
 build_chained_build() {
   rt_docker_dir=$(mktemp -d)
   rt_docker_file=$rt_docker_dir/Dockerfile
@@ -19,7 +29,7 @@ RUN ln -s \$JBOSS_HOME /wildfly
 USER jboss
 CMD \$JBOSS_HOME/bin/openshift-launch.sh
 EOF
-  docker build -t $appImage $rt_docker_dir
+  ${docker_command} build -t $appImage $rt_docker_dir
   ret=$?
   rm -rf $rt_docker_dir
   return $ret

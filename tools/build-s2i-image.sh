@@ -9,6 +9,16 @@ customModuleCopy=$modulesDir/jboss/container/wildfly/base/custom/module.yaml.ori
 overridesFile=$buildImageDir/dev-overrides.yaml
 generatorJar=$SCRIPT_DIR/maven-repo-generator/target/maven-repo-generator-1.0.jar
 
+docker_command=$(command -v podman)
+if [ -z ${docker_command} ]; then
+    docker_command=$(command -v docker)
+fi
+
+if [ -z ${docker_command} ]; then
+    echo "Could not locate podman or docker command."
+    exit 1
+fi
+
 if [ ! -d "$wildflyPath" ]; then
   echo "ERROR: WildFly directory doesn't exist."
   exit 1
@@ -42,7 +52,7 @@ if [ ! -f "$generatorJar" ]; then
 fi
 
 echo "Generating zipped maven repository"
-java -jar $generatorJar $offliner > /dev/null 2>&1 
+java -jar $generatorJar $offliner > /dev/null 2>&1
 if [ $? != 0 ]; then
   echo ERROR: Building maven repo failed.
   exit 1
@@ -55,7 +65,7 @@ sed -i "s|###SNAPSHOT_VERSION###|$version|" "$customModule"
 echo "Patched $customModule with proper version $version"
 
 pushd $buildImageDir > /dev/null
-  cekit build --overrides=$overridesFile docker
+  cekit build --overrides=$overridesFile ${docker_command}
   if [ $? != 0 ]; then
     echo ERROR: Building image failed.
   fi
